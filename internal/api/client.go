@@ -11,9 +11,9 @@ import (
 )
 
 type PostRequest struct {
-	CorrelationID string `json:"correlationId"`
+	CorrelationID string  `json:"correlationId"`
 	Amount        float64 `json:"amount"`
-	RequestedAt   string `json:"requestedAt"`
+	RequestedAt   string  `json:"requestedAt"`
 }
 
 func TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, urls []string) (string, error) {
@@ -27,7 +27,7 @@ func TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, 
 	if err != nil {
 		return "", err
 	}
-	
+
 	fmt.Printf("Payload para endpoint externo: %s\n", string(jsonData))
 
 	client := &http.Client{

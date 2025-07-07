@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/asouza/rinha-backend-go/internal/api"
+	"github.com/asouza/rinha-backend-go/internal/repository"
 	"github.com/dgraph-io/badger/v4"
 	"github.com/go-chi/chi/v5"
 )
@@ -17,10 +18,12 @@ func main() {
 	}
 	defer db.Close()
 
+	transactionRepo := repository.NewBadgerTransactionRepository(db)
+
 	r := chi.NewRouter()
 
 	r.Get("/", api.HandleRoot)
-	r.Post("/payments", api.HandleTransaction(db))
+	r.Post("/payments", api.HandleTransaction(transactionRepo))
 
 	log.Println("Servidor rodando na porta :8080")
 
