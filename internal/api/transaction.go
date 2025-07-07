@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/dgraph-io/badger/v4"
+	"github.com/google/uuid"
 )
 
 type TransactionRequest struct {
@@ -12,7 +15,8 @@ type TransactionRequest struct {
 	Amount        float64 `json:"amount"`
 }
 
-func HandleTransaction(w http.ResponseWriter, r *http.Request) {
+func HandleTransaction(db *badger.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 	var req TransactionRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -25,9 +29,20 @@ func HandleTransaction(w http.ResponseWriter, r *http.Request) {
 		"https://rinha-backend.wiremockapi.cloud/payments-2",
 	}
 
-	successURL, err := TryPostToUrls(req.CorrelationID, req.Amount, time.Now(), urls)
+	now := time.Now()
+	successURL, err := TryPostToUrls(req.CorrelationID, req.Amount, now, urls)
 	if err != nil {
 		http.Error(w, "Payment processing failed", http.StatusInternalServerError)
+		return
+	}
+
+	transactionID := uuid.New().String()
+	valorCentavos := int64(req.Amount * 100)
+	err = db.Update(func(txn *badger.Txn) error {
+		return SaveTransaction(txn, transactionID, valorCentavos, now)
+	})
+	if err != nil {
+		http.Error(w, "Database save failed", http.StatusInternalServerError)
 		return
 	}
 
@@ -42,4 +57,5 @@ func HandleTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
+	}
 }
