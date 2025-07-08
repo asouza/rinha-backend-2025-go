@@ -3,6 +3,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -29,7 +30,7 @@ func HandleTransaction(repo repository.TransactionRepository) http.HandlerFunc {
 			"https://rinha-backend.wiremockapi.cloud/payments-2",
 		}
 
-		now := time.Now()
+		now := time.Now().UTC()
 		successURL, err := TryPostToUrls(req.CorrelationID, req.Amount, now, urls)
 		if err != nil {
 			http.Error(w, "Payment processing failed", http.StatusInternalServerError)
@@ -48,6 +49,8 @@ func HandleTransaction(repo repository.TransactionRepository) http.HandlerFunc {
 			URL:           successURL,
 			IsPriority:    isPriority,
 		}
+
+		fmt.Printf("Salvando transação com instante UTC: %s\n", now.Format("2006-01-02T15:04:05.000Z"))
 
 		err = repo.Save(transaction)
 		if err != nil {
@@ -105,6 +108,10 @@ func HandlePaymentsSummary(repo repository.TransactionRepository) http.HandlerFu
 		//aqui tem aquele acoplamento que não queremos.
 		//o retorno do repository já está sendo enviado para o client.. tinha que transformar.
 		//mas se transformar, tem que iterar de novo, e agora?
+
+		fmt.Printf("Buscando transacoes a partir de: %s\n", from.Format("2006-01-02T15:04:05.000Z"))
+		fmt.Printf("Buscando transacoes até de: %s\n", to.Format("2006-01-02T15:04:05.000Z"))
+
 		summary, err := repo.GetSummary(from, to)
 		if err != nil {
 			http.Error(w, "Failed to get summary", http.StatusInternalServerError)
