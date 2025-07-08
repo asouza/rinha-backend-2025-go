@@ -24,6 +24,7 @@ func main() {
 
 	r.Get("/", api.HandleRoot)
 	r.Post("/payments", api.HandleTransaction(transactionRepo))
+	r.Get("/payments-summary", api.HandlePaymentsSummary(transactionRepo))
 
 	log.Println("Servidor rodando na porta :8080")
 
