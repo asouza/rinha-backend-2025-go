@@ -39,10 +39,14 @@ func HandleTransaction(repo repository.TransactionRepository) http.HandlerFunc {
 		transactionID := uuid.New().String()
 		valorCentavos := int64(req.Amount * 100)
 
+		isPriority := successURL == urls[0]
+
 		transaction := &repository.Transaction{
 			ID:            transactionID,
 			ValorCentavos: valorCentavos,
 			Instante:      now,
+			URL:           successURL,
+			IsPriority:    isPriority,
 		}
 
 		err = repo.Save(transaction)
