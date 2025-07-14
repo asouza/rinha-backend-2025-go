@@ -5,9 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"time"
 )
@@ -30,40 +27,23 @@ func TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, 
 		return "", err
 	}
 
-	fmt.Printf("Payload para endpoint externo: %s\n", string(jsonData))
 
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
-	for i, url := range urls {
-		log.Printf("Tentando conectar na URL %d: %s", i+1, url)
-		
+	for _, url := range urls {
 		resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
-			log.Printf("Erro ao conectar na URL %s: %v", url, err)
 			continue
 		}
 
-		log.Printf("Resposta da URL %s: Status %d", url, resp.StatusCode)
-		
-		// Ler corpo da resposta para debug
-		if resp.Body != nil {
-			body, readErr := io.ReadAll(resp.Body)
-			if readErr == nil {
-				log.Printf("Corpo da resposta de %s: %s", url, string(body))
-			}
-			resp.Body.Close()
-		}
+		resp.Body.Close()
 
 		if resp.StatusCode == http.StatusOK {
-			log.Printf("Sucesso na URL: %s", url)
 			return url, nil
-		} else {
-			log.Printf("URL %s falhou com status: %d", url, resp.StatusCode)
 		}
 	}
 
-	log.Printf("Todas as URLs falharam. Total de URLs testadas: %d", len(urls))
 	return "", errors.New("all URLs failed")
 }

@@ -3,7 +3,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -53,8 +52,6 @@ func HandleTransaction(repo repository.TransactionRepository, paymentURLs []stri
 			IsPriority:    isPriority,
 		}
 
-		fmt.Printf("Salvando transação com instante UTC: %s\n", now.Format("2006-01-02T15:04:05.000Z"))
-
 		err = repo.Save(transaction)
 		if err != nil {
 			http.Error(w, "Database save failed", http.StatusInternalServerError)
@@ -102,8 +99,6 @@ func HandlePaymentsSummary(repo repository.TransactionRepository) http.HandlerFu
 		//o retorno do repository já está sendo enviado para o client.. tinha que transformar.
 		//mas se transformar, tem que iterar de novo, e agora?
 
-		fmt.Printf("Buscando transacoes a partir de: %s\n", from.Format("2006-01-02T15:04:05.000Z"))
-		fmt.Printf("Buscando transacoes até de: %s\n", to.Format("2006-01-02T15:04:05.000Z"))
 
 		summary, err := repo.GetSummary(from, to)
 		if err != nil {
