@@ -61,17 +61,7 @@ func HandleTransaction(repo repository.TransactionRepository, paymentURLs []stri
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		response := map[string]interface{}{
-			"correlationId": req.CorrelationID,
-			"amount":        req.Amount,
-			"status":        "processed",
-			"processedBy":   successURL,
-		}
-
-		json.NewEncoder(w).Encode(response)
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
