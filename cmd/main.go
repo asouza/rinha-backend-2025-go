@@ -2,25 +2,69 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/asouza/rinha-backend-go/internal/api"
 	"github.com/asouza/rinha-backend-go/internal/repository"
-	"github.com/dgraph-io/badger/v4"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	db, err := badger.Open(badger.DefaultOptions("./data"))
+	// Get database connection parameters from environment variables
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+	
+	dbPort := os.Getenv("DB_PORT")
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+	
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		log.Fatal("DB_USER environment variable is required")
+	}
+	
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbPassword == "" {
+		log.Fatal("DB_PASSWORD environment variable is required")
+	}
+	
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		log.Fatal("DB_NAME environment variable is required")
+	}
+
+	// Build connection string
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		dbHost, dbPort, dbUser, dbPassword, dbName)
+
+	// Open database connection
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatalf("Erro ao abrir BadgerDB: %v", err)
+		log.Fatalf("Erro ao abrir conexão com PostgreSQL: %v", err)
 	}
 	defer db.Close()
 
-	transactionRepo := repository.NewBadgerTransactionRepository(db)
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(2 * time.Minute)
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Erro ao conectar com PostgreSQL: %v", err)
+	}
+
+	transactionRepo := repository.NewPostgresTransactionRepository(db)
 
 	urlsEnv := os.Getenv("PAYMENT_URLS")
 	if urlsEnv == "" {
