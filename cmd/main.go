@@ -22,22 +22,22 @@ func main() {
 	if dbHost == "" {
 		dbHost = "localhost"
 	}
-	
+
 	dbPort := os.Getenv("DB_PORT")
 	if dbPort == "" {
 		dbPort = "5432"
 	}
-	
+
 	dbUser := os.Getenv("DB_USER")
 	if dbUser == "" {
 		log.Fatal("DB_USER environment variable is required")
 	}
-	
+
 	dbPassword := os.Getenv("DB_PASSWORD")
 	if dbPassword == "" {
 		log.Fatal("DB_PASSWORD environment variable is required")
 	}
-	
+
 	dbName := os.Getenv("DB_NAME")
 	if dbName == "" {
 		log.Fatal("DB_NAME environment variable is required")
@@ -83,7 +83,7 @@ func main() {
 
 	log.Println("Servidor rodando na porta :8080")
 
-	err = http.ListenAndServe(":8080", r)
+	err = http.ListenAndServe(":9999", r)
 
 	if err != nil {
 		log.Fatalf("Erro ao iniciar servidor: %v", err)
