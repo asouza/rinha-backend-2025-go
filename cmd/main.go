@@ -81,7 +81,7 @@ func main() {
 	r.Post("/payments", api.HandleTransaction(transactionRepo, externalClient, paymentURLs))
 	r.Get("/payments-summary", api.HandlePaymentsSummary(transactionRepo))
 
-	log.Println("Servidor rodando na porta :8080")
+	log.Println("Servidor rodando na porta :9999")
 
 	err = http.ListenAndServe(":9999", r)
 

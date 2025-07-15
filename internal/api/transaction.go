@@ -26,7 +26,6 @@ func HandleTransaction(repo repository.TransactionRepository, externalClient Ext
 		}
 
 		if len(paymentURLs) == 0 {
-			log.Println("Payment URLs not configured")
 			http.Error(w, "Server configuration error", http.StatusInternalServerError)
 			return
 		}

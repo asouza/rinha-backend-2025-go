@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 )
@@ -32,6 +33,7 @@ func NewHTTPClient() *HTTPClient {
 }
 
 func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, urls []string) (string, error) {
+	log.Println("Chegou no client...")
 	payload := PostRequest{
 		CorrelationID: correlationID,
 		Amount:        amount,
@@ -46,6 +48,7 @@ func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, request
 	for _, url := range urls {
 		resp, err := c.client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
+			log.Printf("Resposta e erro na comunicacao com url %v: %v %v", url, resp, err)
 			continue
 		}
 

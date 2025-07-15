@@ -1,3 +1,4 @@
+docker-compose-rinha-arm64.yml
 claude-log*
 data/
 # Binaries for programs and plugins
