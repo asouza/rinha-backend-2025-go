@@ -26,7 +26,7 @@ type HTTPClient struct {
 func NewHTTPClient() *HTTPClient {
 	return &HTTPClient{
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 500 * time.Millisecond,
 		},
 	}
 }
@@ -42,8 +42,6 @@ func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, request
 	if err != nil {
 		return "", err
 	}
-
-
 
 	for _, url := range urls {
 		resp, err := c.client.Post(url, "application/json", bytes.NewBuffer(jsonData))

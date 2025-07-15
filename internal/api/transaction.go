@@ -99,9 +99,9 @@ func HandlePaymentsSummary(repo repository.TransactionRepository) http.HandlerFu
 		//o retorno do repository já está sendo enviado para o client.. tinha que transformar.
 		//mas se transformar, tem que iterar de novo, e agora?
 
-
 		summary, err := repo.GetSummary(from, to)
 		if err != nil {
+			log.Printf("Error in GetSummary query: %v", err)
 			http.Error(w, "Failed to get summary", http.StatusInternalServerError)
 			return
 		}
