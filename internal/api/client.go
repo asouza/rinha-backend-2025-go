@@ -15,7 +15,23 @@ type PostRequest struct {
 	RequestedAt   string  `json:"requestedAt"`
 }
 
-func TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, urls []string) (string, error) {
+type ExternalServiceClient interface {
+	TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, urls []string) (string, error)
+}
+
+type HTTPClient struct {
+	client *http.Client
+}
+
+func NewHTTPClient() *HTTPClient {
+	return &HTTPClient{
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
+}
+
+func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, urls []string) (string, error) {
 	payload := PostRequest{
 		CorrelationID: correlationID,
 		Amount:        amount,
@@ -28,12 +44,9 @@ func TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, 
 	}
 
 
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
 
 	for _, url := range urls {
-		resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+		resp, err := c.client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
 			continue
 		}

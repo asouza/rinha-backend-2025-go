@@ -65,6 +65,7 @@ func main() {
 	}
 
 	transactionRepo := repository.NewPostgresTransactionRepository(db)
+	externalClient := api.NewHTTPClient()
 
 	urlsEnv := os.Getenv("PAYMENT_URLS")
 	if urlsEnv == "" {
@@ -77,7 +78,7 @@ func main() {
 	r.Get("/", api.HandleRoot)
 	//o handler depende das urls, ficaria mais fácil de testar também.
 	//Podia depender do os em si também... Podia extrapolar e criar o wrapper para expor apenas o que precisa.
-	r.Post("/payments", api.HandleTransaction(transactionRepo, paymentURLs))
+	r.Post("/payments", api.HandleTransaction(transactionRepo, externalClient, paymentURLs))
 	r.Get("/payments-summary", api.HandlePaymentsSummary(transactionRepo))
 
 	log.Println("Servidor rodando na porta :8080")

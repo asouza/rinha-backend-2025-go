@@ -16,7 +16,7 @@ type TransactionRequest struct {
 	Amount        float64 `json:"amount"`
 }
 
-func HandleTransaction(repo repository.TransactionRepository, paymentURLs []string) http.HandlerFunc {
+func HandleTransaction(repo repository.TransactionRepository, externalClient ExternalServiceClient, paymentURLs []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req TransactionRequest
 
@@ -33,7 +33,7 @@ func HandleTransaction(repo repository.TransactionRepository, paymentURLs []stri
 		urls := paymentURLs
 
 		now := time.Now().UTC()
-		successURL, err := TryPostToUrls(req.CorrelationID, req.Amount, now, urls)
+		successURL, err := externalClient.TryPostToUrls(req.CorrelationID, req.Amount, now, urls)
 		if err != nil {
 			http.Error(w, "Payment processing failed", http.StatusInternalServerError)
 			return
