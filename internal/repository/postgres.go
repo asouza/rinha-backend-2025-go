@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"math"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -57,11 +58,11 @@ func (r *PostgresTransactionRepository) GetSummary(from, to time.Time) (*Payment
 	summary := &PaymentsSummary{
 		Default: SummaryData{
 			TotalRequests: defaultRequests,
-			TotalAmount:   float64(defaultAmount) / 100.0,
+			TotalAmount:   math.Round(float64(defaultAmount)/100.0*100) / 100.0,
 		},
 		Fallback: SummaryData{
 			TotalRequests: fallbackRequests,
-			TotalAmount:   float64(fallbackAmount) / 100.0,
+			TotalAmount:   math.Round(float64(fallbackAmount)/100.0*100) / 100.0,
 		},
 	}
 

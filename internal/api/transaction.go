@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -28,7 +29,7 @@ func ProcessPaymentTransaction(req TransactionRequest, repo repository.Transacti
 		return err
 	}
 
-	valorCentavos := int64(req.Amount * 100)
+	valorCentavos := int64(math.Round(req.Amount * 100))
 	isPriority := successURL == urls[0]
 
 	transaction := &repository.Transaction{
