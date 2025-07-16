@@ -21,15 +21,10 @@ type ExternalServiceClient interface {
 }
 
 type HTTPClient struct {
-	client *http.Client
 }
 
 func NewHTTPClient() *HTTPClient {
-	return &HTTPClient{
-		client: &http.Client{
-			Timeout: 500 * time.Millisecond,
-		},
-	}
+	return &HTTPClient{}
 }
 
 func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, urls []string) (string, error) {
@@ -44,8 +39,19 @@ func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, request
 		return "", err
 	}
 
-	for _, url := range urls {
-		resp, err := c.client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	for i, url := range urls {
+		var timeout time.Duration
+		if i == 0 {
+			timeout = 500 * time.Millisecond
+		} else {
+			timeout = 5000 * time.Millisecond
+		}
+
+		client := &http.Client{
+			Timeout: timeout,
+		}
+
+		resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
 			log.Printf("Resposta e erro na comunicacao com url %v: %v %v", url, resp, err)
 			continue
