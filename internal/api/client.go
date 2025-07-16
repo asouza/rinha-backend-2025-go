@@ -44,7 +44,7 @@ func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, request
 		if i == 0 {
 			timeout = 500 * time.Millisecond
 		} else {
-			timeout = 5000 * time.Millisecond
+			timeout = 6000 * time.Millisecond
 		}
 
 		client := &http.Client{

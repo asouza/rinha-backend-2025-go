@@ -1,39 +1,38 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"log"
-	"net/http"
 	"sync"
 	"time"
 
+	"github.com/asouza/rinha-backend-go/internal/repository"
 	"k8s.io/client-go/util/workqueue"
 )
 
 // WorkqueueJobScheduler implements JobScheduler using Kubernetes workqueue
 type WorkqueueJobScheduler struct {
-	queue       workqueue.TypedDelayingInterface[RetryPaymentJob]
-	httpClient  *http.Client
-	baseURL     string
-	workers     int
-	stopCh      chan struct{}
-	wg          sync.WaitGroup
-	maxRetries  int
-	initialDelay time.Duration
+	queue          workqueue.TypedDelayingInterface[RetryPaymentJob]
+	repo           repository.TransactionRepository
+	externalClient ExternalServiceClient
+	paymentURLs    []string
+	workers        int
+	stopCh         chan struct{}
+	wg             sync.WaitGroup
+	maxRetries     int
+	initialDelay   time.Duration
 }
 
 // NewWorkqueueJobScheduler creates a new workqueue-based job scheduler
-func NewWorkqueueJobScheduler(baseURL string, workers int, maxRetries int, initialDelay time.Duration) *WorkqueueJobScheduler {
+func NewWorkqueueJobScheduler(repo repository.TransactionRepository, externalClient ExternalServiceClient, paymentURLs []string, workers int, maxRetries int, initialDelay time.Duration) *WorkqueueJobScheduler {
 	return &WorkqueueJobScheduler{
-		queue:       workqueue.NewTypedDelayingQueue[RetryPaymentJob](),
-		httpClient:  &http.Client{Timeout: 10 * time.Second},
-		baseURL:     baseURL,
-		workers:     workers,
-		stopCh:      make(chan struct{}),
-		maxRetries:  maxRetries,
-		initialDelay: initialDelay,
+		queue:          workqueue.NewTypedDelayingQueue[RetryPaymentJob](),
+		repo:           repo,
+		externalClient: externalClient,
+		paymentURLs:    paymentURLs,
+		workers:        workers,
+		stopCh:         make(chan struct{}),
+		maxRetries:     maxRetries,
+		initialDelay:   initialDelay,
 	}
 }
 
@@ -98,7 +97,7 @@ func (w *WorkqueueJobScheduler) processJob(job RetryPaymentJob) {
 	log.Printf("Processing retry payment job (attempt %d/%d) for correlation ID: %s", 
 		job.AttemptCount, job.MaxRetries, job.Payload.CorrelationID)
 	
-	err := w.sendPaymentRequest(job.Payload)
+	err := ProcessPaymentTransaction(job.Payload, w.repo, w.externalClient, w.paymentURLs)
 	if err != nil {
 		log.Printf("Retry payment failed for correlation ID %s: %v", job.Payload.CorrelationID, err)
 		
@@ -116,33 +115,6 @@ func (w *WorkqueueJobScheduler) processJob(job RetryPaymentJob) {
 	}
 }
 
-// sendPaymentRequest sends the payment request to the /payments endpoint
-func (w *WorkqueueJobScheduler) sendPaymentRequest(payload TransactionRequest) error {
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
-	}
-	
-	url := fmt.Sprintf("%s/payments", w.baseURL)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	
-	req.Header.Set("Content-Type", "application/json")
-	
-	resp, err := w.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-	
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("request failed with status %d", resp.StatusCode)
-	}
-	
-	return nil
-}
 
 // calculateBackoffDelay calculates exponential backoff delay
 func (w *WorkqueueJobScheduler) calculateBackoffDelay(attemptCount int) time.Duration {

@@ -3,17 +3,48 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/asouza/rinha-backend-go/internal/repository"
-	"github.com/google/uuid"
 )
 
 type TransactionRequest struct {
 	CorrelationID string  `json:"correlationId"`
 	Amount        float64 `json:"amount"`
+}
+
+func ProcessPaymentTransaction(req TransactionRequest, repo repository.TransactionRepository, externalClient ExternalServiceClient, paymentURLs []string) error {
+	if len(paymentURLs) == 0 {
+		return errors.New("server configuration error")
+	}
+	urls := paymentURLs
+
+	now := time.Now().UTC()
+	successURL, err := externalClient.TryPostToUrls(req.CorrelationID, req.Amount, now, urls)
+	if err != nil {
+		return err
+	}
+
+	valorCentavos := int64(req.Amount * 100)
+	isPriority := successURL == urls[0]
+
+	transaction := &repository.Transaction{
+		ID:            req.CorrelationID,
+		ValorCentavos: valorCentavos,
+		Instante:      now,
+		URL:           successURL,
+		IsPriority:    isPriority,
+	}
+
+	err = repo.Save(transaction)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func HandleTransaction(repo repository.TransactionRepository, externalClient ExternalServiceClient, paymentURLs []string, jobScheduler JobScheduler) http.HandlerFunc {
@@ -25,41 +56,10 @@ func HandleTransaction(repo repository.TransactionRepository, externalClient Ext
 			return
 		}
 
-		if len(paymentURLs) == 0 {
-			http.Error(w, "Server configuration error", http.StatusInternalServerError)
-			return
-		}
-		urls := paymentURLs
+		// Schedule job for all payment processing - no synchronous processing
+		jobScheduler.ScheduleRetryPayment(req, 0)
 
-		now := time.Now().UTC()
-		successURL, err := externalClient.TryPostToUrls(req.CorrelationID, req.Amount, now, urls)
-		if err != nil {
-			// Schedule retry job for failed payment
-			jobScheduler.ScheduleRetryPayment(req, 2*time.Second)
-			http.Error(w, "Payment processing failed", http.StatusInternalServerError)
-			return
-		}
-
-		transactionID := uuid.New().String()
-		valorCentavos := int64(req.Amount * 100)
-
-		isPriority := successURL == urls[0]
-
-		transaction := &repository.Transaction{
-			ID:            transactionID,
-			ValorCentavos: valorCentavos,
-			Instante:      now,
-			URL:           successURL,
-			IsPriority:    isPriority,
-		}
-
-		err = repo.Save(transaction)
-		if err != nil {
-			http.Error(w, "Database save failed", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusAccepted)
 	}
 }
 

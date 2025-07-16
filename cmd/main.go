@@ -76,7 +76,7 @@ func main() {
 	paymentURLs := strings.Split(urlsEnv, ",")
 
 	// Initialize job scheduler
-	jobScheduler := api.NewWorkqueueJobScheduler("http://localhost:9999", 10, 3, 5*time.Second)
+	jobScheduler := api.NewWorkqueueJobScheduler(transactionRepo, externalClient, paymentURLs, 10, 3, 5*time.Second)
 	err = jobScheduler.Start()
 	if err != nil {
 		log.Fatalf("Failed to start job scheduler: %v", err)
