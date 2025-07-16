@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/asouza/rinha-backend-go/internal/api"
@@ -73,12 +75,29 @@ func main() {
 	}
 	paymentURLs := strings.Split(urlsEnv, ",")
 
+	// Initialize job scheduler
+	jobScheduler := api.NewWorkqueueJobScheduler("http://localhost:9999", 10, 3, 5*time.Second)
+	err = jobScheduler.Start()
+	if err != nil {
+		log.Fatalf("Failed to start job scheduler: %v", err)
+	}
+
+	// Setup graceful shutdown for job scheduler
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		log.Println("Shutting down job scheduler...")
+		jobScheduler.Stop()
+		os.Exit(0)
+	}()
+
 	r := chi.NewRouter()
 
 	r.Get("/", api.HandleRoot)
 	//o handler depende das urls, ficaria mais fácil de testar também.
 	//Podia depender do os em si também... Podia extrapolar e criar o wrapper para expor apenas o que precisa.
-	r.Post("/payments", api.HandleTransaction(transactionRepo, externalClient, paymentURLs))
+	r.Post("/payments", api.HandleTransaction(transactionRepo, externalClient, paymentURLs, jobScheduler))
 	r.Get("/payments-summary", api.HandlePaymentsSummary(transactionRepo))
 
 	log.Println("Servidor rodando na porta :9999")

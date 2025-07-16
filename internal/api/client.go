@@ -33,7 +33,6 @@ func NewHTTPClient() *HTTPClient {
 }
 
 func (c *HTTPClient) TryPostToUrls(correlationID string, amount float64, requestedAt time.Time, urls []string) (string, error) {
-	log.Println("Chegou no client...")
 	payload := PostRequest{
 		CorrelationID: correlationID,
 		Amount:        amount,

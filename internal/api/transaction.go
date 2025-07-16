@@ -16,7 +16,7 @@ type TransactionRequest struct {
 	Amount        float64 `json:"amount"`
 }
 
-func HandleTransaction(repo repository.TransactionRepository, externalClient ExternalServiceClient, paymentURLs []string) http.HandlerFunc {
+func HandleTransaction(repo repository.TransactionRepository, externalClient ExternalServiceClient, paymentURLs []string, jobScheduler JobScheduler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req TransactionRequest
 
@@ -34,6 +34,8 @@ func HandleTransaction(repo repository.TransactionRepository, externalClient Ext
 		now := time.Now().UTC()
 		successURL, err := externalClient.TryPostToUrls(req.CorrelationID, req.Amount, now, urls)
 		if err != nil {
+			// Schedule retry job for failed payment
+			jobScheduler.ScheduleRetryPayment(req, 2*time.Second)
 			http.Error(w, "Payment processing failed", http.StatusInternalServerError)
 			return
 		}
